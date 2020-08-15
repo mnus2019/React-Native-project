@@ -25,8 +25,7 @@ import Reservation from './ReservationComponent';
     };    
 
 
-const DirectoryNavigator = createStackNavigator(
-  {
+const DirectoryNavigator = createStackNavigator(  {
     Directory: { 
       screen: Directory,
       navigationOptions: ({navigation}) => ({
@@ -52,6 +51,7 @@ const DirectoryNavigator = createStackNavigator(
       },
     },
   }
+  
 );
 
 const HomeNavigator = createStackNavigator(
