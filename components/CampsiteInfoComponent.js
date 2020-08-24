@@ -9,9 +9,10 @@ import {
   StyleSheet,
   Alert,
   PanResponder,
+  Share,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
-import moment from 'moment';
+import moment from "moment";
 import { Card, Icon, Rating, Input } from "react-native-elements";
 import { connect } from "react-redux";
 import { baseUrl } from "../shared/baseUrl";
@@ -43,9 +44,10 @@ function RenderComments({ comments }) {
           onFinishRating={(rating) => this.setState({ rating: rating })}
           style={{ paddingVertical: "5%", alignItems: "flex-start" }}
         />
-        <Text
-          style={{ fontSize: 12 }}
-        >{`-- ${item.author} , `}{moment(item.date).format('MMMM Do YYYY, h:mm:ss a')} </Text>
+        <Text style={{ fontSize: 12 }}>
+          {`-- ${item.author} , `}
+          {moment(item.date).format("MMMM Do YYYY, h:mm:ss a")}{" "}
+        </Text>
       </View>
     );
   };
@@ -70,7 +72,7 @@ function RenderCampsite(props) {
 
   const recognizeDrag = ({ dx }) => (dx < -200 ? true : false);
   const recognizeComment = ({ dx }) => (dx > 200 ? true : false);
-  
+
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderGrant: () => {
@@ -102,15 +104,25 @@ function RenderCampsite(props) {
           ],
           { cancelable: false }
         );
-      }
-      else if(recognizeComment(gestureState)){
+      } else if (recognizeComment(gestureState)) {
         props.onShowModal();
       }
       return true;
     },
   });
 
-
+  const shareCampsite = (title, message, url) => {
+    Share.share(
+      {
+        title: title,
+        message: `${title}: ${message} ${url}`,
+        url: url,
+      },
+      {
+        dialogTitle: "Share " + title,
+      }
+    );
+  };
 
   if (campsite) {
     return (
@@ -120,7 +132,7 @@ function RenderCampsite(props) {
         delay={1000}
         ref={view}
         {...panResponder.panHandlers}
-            >
+      >
         <Card
           featuredTitle={campsite.name}
           image={{ uri: baseUrl + campsite.image }}
@@ -149,6 +161,22 @@ function RenderCampsite(props) {
               reverse
               onPress={() => props.onShowModal()}
             />
+
+            <Icon
+              name={"share"}
+              type="font-awesome"
+              color="#5637DD"
+              style={styles.cardItem}
+              raised
+              reverse
+              onPress={() =>
+                shareCampsite(
+                  campsite.name,
+                  campsite.description,
+                  baseUrl + campsite.image
+                )
+              }
+            />
           </View>
         </Card>
       </Animatable.View>
@@ -166,7 +194,7 @@ class CampsiteInfo extends Component {
       author: "",
       text: "",
       authorError: "",
-      commentError: ""
+      commentError: "",
     };
   }
 
@@ -175,18 +203,18 @@ class CampsiteInfo extends Component {
   }
 
   handleComment(campsiteId) {
-    const regex=/^([a-zA-Z]+\s)*[a-zA-Z]+$/;
-    const value=regex.test(this.state.author);
+    const regex = /^([a-zA-Z]+\s)*[a-zA-Z]+$/;
+    const value = regex.test(this.state.author);
     if (this.state.author.length < 2 || !value) {
-      Alert.alert("Please Enter correct Name !!!")
-      return
+      Alert.alert("Please Enter correct Name !!!");
+      return;
     }
-    if (this.state.text.length < 2  ) {
-      Alert.alert("Please Enter comment !!!")
-      return
+    if (this.state.text.length < 2) {
+      Alert.alert("Please Enter comment !!!");
+      return;
     }
-    
-     this.props.postComment(
+
+    this.props.postComment(
       campsiteId,
       this.state.rating,
       this.state.author,
@@ -194,7 +222,7 @@ class CampsiteInfo extends Component {
     );
     this.toggleModal();
   }
-  
+
   resetForm() {
     this.setState({
       author: "",
@@ -252,7 +280,6 @@ class CampsiteInfo extends Component {
               maxLength={16}
             />
 
-           
             <Input
               placeholder="Comment"
               leftIcon={{ type: "font-awesome", name: "comment-o" }}
@@ -261,7 +288,7 @@ class CampsiteInfo extends Component {
               value={this.state.text}
               maxLength={16}
             />
-           
+
             <View style={{ margin: 10 }}>
               <Button
                 title="Submit"
