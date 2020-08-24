@@ -11,7 +11,7 @@ import {
   PanResponder,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
-
+import moment from 'moment';
 import { Card, Icon, Rating, Input } from "react-native-elements";
 import { connect } from "react-redux";
 import { baseUrl } from "../shared/baseUrl";
@@ -45,7 +45,7 @@ function RenderComments({ comments }) {
         />
         <Text
           style={{ fontSize: 12 }}
-        >{`-- ${item.author}, ${item.date}`}</Text>
+        >{`-- ${item.author} , `}{moment(item.date).format('MMMM Do YYYY, h:mm:ss a')} </Text>
       </View>
     );
   };
@@ -64,52 +64,63 @@ function RenderComments({ comments }) {
 }
 
 function RenderCampsite(props) {
-
-  const {campsite} = props;
+  const { campsite } = props;
 
   const view = React.createRef();
 
-    const recognizeDrag = ({dx}) => (dx < -200) ? true : false;
+  const recognizeDrag = ({ dx }) => (dx < -200 ? true : false);
+  const recognizeComment = ({ dx }) => (dx > 200 ? true : false);
+  
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      view.current
+        .rubberBand(1000)
+        .then((endState) =>
+          console.log(endState.finished ? "finished" : "canceled")
+        );
+    },
+    onPanResponderEnd: (e, gestureState) => {
+      console.log("pan responder end", gestureState);
+      if (recognizeDrag(gestureState)) {
+        Alert.alert(
+          "Add Favorite",
+          "Are you sure you wish to add " + campsite.name + " to favorites?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => console.log("Cancel Pressed"),
+            },
+            {
+              text: "OK",
+              onPress: () =>
+                props.favorite
+                  ? console.log("Already set as a favorite")
+                  : props.markFavorite(),
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+      else if(recognizeComment(gestureState)){
+        props.onShowModal();
+      }
+      return true;
+    },
+  });
 
-    const panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-          view.current.rubberBand(1000)
-          .then(endState => console.log(endState.finished ? 'finished' : 'canceled'));
-      },
-      onPanResponderEnd: (e, gestureState) => {
-            console.log('pan responder end', gestureState);
-            if (recognizeDrag(gestureState)) {
-                Alert.alert(
-                    'Add Favorite',
-                    'Are you sure you wish to add ' + campsite.name + ' to favorites?',
-                    [
-                        {
-                            text: 'Cancel',
-                            style: 'cancel',
-                            onPress: () => console.log('Cancel Pressed')
-                        },
-                        {
-                            text: 'OK',
-                            onPress: () => props.favorite ?
-                                console.log('Already set as a favorite') : props.markFavorite()
-                        }
-                    ],
-                    { cancelable: false }
-                );
-            }
-            return true;
-        }
-    });
 
-    if (campsite) {
-      return (
-          <Animatable.View
-              animation='fadeInDown'
-              duration={2000}
-              delay={1000}
-              ref={view}
-              {...panResponder.panHandlers}>
+
+  if (campsite) {
+    return (
+      <Animatable.View
+        animation="fadeInDown"
+        duration={2000}
+        delay={1000}
+        ref={view}
+        {...panResponder.panHandlers}
+            >
         <Card
           featuredTitle={campsite.name}
           image={{ uri: baseUrl + campsite.image }}
@@ -154,6 +165,8 @@ class CampsiteInfo extends Component {
       rating: 5,
       author: "",
       text: "",
+      authorError: "",
+      commentError: ""
     };
   }
 
@@ -162,7 +175,18 @@ class CampsiteInfo extends Component {
   }
 
   handleComment(campsiteId) {
-    this.props.postComment(
+    const regex=/^([a-zA-Z]+\s)*[a-zA-Z]+$/;
+    const value=regex.test(this.state.author);
+    if (this.state.author.length < 2 || !value) {
+      Alert.alert("Please Enter correct Name !!!")
+      return
+    }
+    if (this.state.text.length < 2  ) {
+      Alert.alert("Please Enter comment !!!")
+      return
+    }
+    
+     this.props.postComment(
       campsiteId,
       this.state.rating,
       this.state.author,
@@ -170,7 +194,7 @@ class CampsiteInfo extends Component {
     );
     this.toggleModal();
   }
-
+  
   resetForm() {
     this.setState({
       author: "",
@@ -225,15 +249,19 @@ class CampsiteInfo extends Component {
               leftIconContainerStyle={{ paddingRight: 10 }}
               onChangeText={(text) => this.setState({ author: text })}
               value={this.state.author}
+              maxLength={16}
             />
 
+           
             <Input
               placeholder="Comment"
               leftIcon={{ type: "font-awesome", name: "comment-o" }}
               leftIconContainerStyle={{ paddingRight: 10 }}
               onChangeText={(text) => this.setState({ text: text })}
               value={this.state.text}
+              maxLength={16}
             />
+           
             <View style={{ margin: 10 }}>
               <Button
                 title="Submit"
